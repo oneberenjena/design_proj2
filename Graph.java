@@ -216,11 +216,11 @@ public class Graph {
 				}
 
 				List<Integer> CMib = obtener_camino(CCM);  
-				int i = CMib.get(0);
+				int i = CMib.get(0); // Esta es la unica parte que no se
 				factibleCicle.addAll(CMib);
 				// Borrar lados de CMib en T
-				removePathEdgesFrom(T, CMib);
-				b = i;
+				T = removePathEdgesFrom(T, CMib);
+				b = i; // Entonces no estoy claro de esto
 			}
 		}
 
@@ -232,8 +232,16 @@ public class Graph {
 		}
 	}
 
-	public void removePathEdgesFrom(Set<Edge> set, List<Integer> CM){
-		// break;
+	public Set<Edge> removePathEdgesFrom(Set<Edge> set, List<Integer> CM){
+		for (int i = 0; i<CM.size(); i++) {
+			int u = CM.get(0);
+			if (CM.get(i+1) != null){
+				int v = CM.get(i+1);
+				Edge e = new Edge(u,v);
+				if (set.contains(e)) {set.remove(e);}
+			}
+		}
+		return set;
 	}
 
 	public Edge obtener_lado(Set<Edge> T, int b){
