@@ -205,8 +205,12 @@ public class Graph {
 			} else {
 				Set<LinkedHashSet<Integer>> CCM = new HashSet<LinkedHashSet<Integer>>();
 				for (Edge e : T) {
-					break;
+					for (Integer i : e.toSet()) {
+						LinkedHashSet<Integer> CMib = minimumCostPath(i,b); // ESTA FUNCION 
+						CCM.add(CMib);
+					}
 				}
+
 			}
 
 		}
