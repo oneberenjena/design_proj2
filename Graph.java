@@ -75,12 +75,12 @@ public class Graph {
 	}
 
 	public void calculate_phie(Edge e, int c, int b){
-		Integer phie_e = b - c;
+		int phie_e = b - c;
 		phie.put(e, phie_e);
 	}
 
 	public void calculate_psie(Edge e, int c, int b){
-		Integer psie_e = b - 2*c;
+		int psie_e = b - 2*c;
 		psie.put(e, psie_e);
 	}
 
@@ -121,10 +121,10 @@ public class Graph {
 	}
 
 	public Edge max_phie_neighboor(int d){
-		Integer maxPhie = -Integer.MAX_VALUE;
-		Integer psieEd = 0; 
+		int maxPhie = -Integer.MAX_VALUE;
+		int psieEd = 0; 
 		Edge maxEdge =  new Edge();
-		for (Integer v : adj.get(d)) {
+		for (int v : adj.get(d)) {
 			Edge ed = new Edge(d,v);
 			psieEd = get_psie(ed);
 			if (psieEd > maxPhie) {
@@ -142,9 +142,9 @@ public class Graph {
 	}
 
 	public void print_adjacencies(){
-		for (Integer u : V) {
+		for (int u : V) {
 			System.out.println("Adyacentes del nodo " + u + "\n");
-			for (Integer v : adj.get(u)) {
+			for (int v : adj.get(u)) {
 				System.out.println(v);
 			}
 		}
@@ -152,7 +152,7 @@ public class Graph {
 
 
 	public void heuristic(int d){
-		Graph factibleCicle = new Graph();
+		List<Integer> factibleCicle = new ArrayList<Integer>();
 
 		calculate_P();
 		calculate_R();
@@ -169,7 +169,7 @@ public class Graph {
 		}
 
 		if (!estaEnT){
-			Integer maxphi = -Integer.MAX_VALUE;
+			int maxphi = -Integer.MAX_VALUE;
 			Edge maxedge = new Edge();
 			for (Edge e : E) {
 				if (e.u() == d){
@@ -179,16 +179,16 @@ public class Graph {
 			}
 		}
 
-		Integer b = d;
+		int b = d;
 
 		Edge ebu = new Edge();
 		Boolean ebu_exists = false;
-		Integer enrl = 0;
+		int enrl = 0;
 
 		while (!T.isEmpty()){
 			// Existe un lado cuya fuente sea b y su destino u? 
 			for (Edge e : T) {
-				for (Integer u : V) {
+				for (int u : V) {
 					if (e.u() == b && e.v() == u){
 						ebu_exists = true;
 						enrl = u;
@@ -200,20 +200,153 @@ public class Graph {
 			if (ebu_exists){
 				ebu = obtener_lado(T, b);
 				T.remove(ebu);
-				factibleCicle.addEdge(ebu);
+				///////////////////////////
+				System.out.println("Adding edge (" + ebu.u() + "," + ebu.v() + ") to cicle");
+				///////////////////////////
+				factibleCicle.add(ebu.u());
+				factibleCicle.add(ebu.v());
 				b = enrl;
 			} else {
-				Set<LinkedHashSet<Integer>> CCM = new HashSet<LinkedHashSet<Integer>>();
+				List<ArrayList<Integer>> CCM = new ArrayList<ArrayList<Integer>>();
 				for (Edge e : T) {
-					for (Integer i : e.toSet()) {
-						LinkedHashSet<Integer> CMib = minimumCostPath(i,b); // ESTA FUNCION 
+					for (int i : e.toSet()) {
+						ArrayList<Integer> CMib = minimumCostPath(i,b);  
 						CCM.add(CMib);
 					}
 				}
 
+				List<Integer> CMib = obtener_camino(CCM);  
+				int i = CMib.get(0);
+				factibleCicle.addAll(CMib);
+				// Borrar lados de CMib en T
+				removePathEdgesFrom(T, CMib);
+				b = i;
 			}
+		}
 
+		// Si el ultimo vertice del ciclo no es el deposito:
+		int last_i = factibleCicle.get(factibleCicle.size()-1);
+		if (last_i != d){
+			List<Integer> CMid = minimumCostPath(last_i,d);
+			factibleCicle.addAll(CMid); 
 		}
 	}
+
+	public void removePathEdgesFrom(Set<Edge> set, List<Integer> CM){
+		// break;
+	}
+
+	public Edge obtener_lado(Set<Edge> T, int b){
+		int maxPhi = -Integer.MAX_VALUE;
+		int prevMax = 0;
+		Edge beneficEdge = new Edge();
+		for (Edge e : T) {
+			if (e.u() == b){
+				prevMax =  maxPhi;
+				maxPhi = Math.max(maxPhi, phie.get(e));
+				if (maxPhi > prevMax){
+					beneficEdge = e;
+				}
+			}	
+		}
+
+		return beneficEdge;
+	}
+
+	public ArrayList<Integer> obtener_camino(List<ArrayList<Integer>> CCM){
+		int maxPhi = -Integer.MAX_VALUE;
+		int prevMax = 0;
+		int phiPathPosition = 0;
+		int maxPhiPathPosition = -1;
+		int actPhi = 0;
+		
+		for (ArrayList<Integer> path : CCM) {
+			for (int v : path) {
+				actPhi += phie.get(v);
+			}
+
+			prevMax = maxPhi;
+			maxPhi = Math.max(maxPhi, actPhi);
+
+			if (maxPhi > prevMax){
+				maxPhiPathPosition = phiPathPosition;
+			}
+
+			actPhi = 0;
+			phiPathPosition++;
+		}
+
+		return CCM.get(maxPhiPathPosition);
+	}
+
+	public int getMinDistVertex(Set<Integer> dijkstra_Q, Map<Integer, Integer> dist){
+		int min = Integer.MAX_VALUE;
+		int prevmin = min;
+		int tmp_minVertex = -1;
+
+		for (int v : dijkstra_Q) {
+			min = Math.min(min, dist.get(v));
+
+			if (min < prevmin){
+				tmp_minVertex = v;
+				prevmin = min;
+			}
+		}
+
+		return tmp_minVertex;
+	}
+
+	// Algoritmo de dijkstra extraido del pseudocodigo de wikipedia
+	// https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+	// Calcula el camino minimo desde el nodo source al target
+	public ArrayList<Integer> minimumCostPath(int source, int target){
+		Set<Integer> dijkstra_Q = new HashSet<Integer>();
+		Map<Integer, Integer> dist = new HashMap<Integer, Integer>();
+		Map<Integer, Integer> prev = new HashMap<Integer, Integer>();
+
+		for (Integer v : V) {
+		 	dist.put(v, Integer.MAX_VALUE);
+		 	prev.put(v, -1);
+		 	dijkstra_Q.add(v);
+		} 
+
+		dist.put(source, 0);
+
+		while (!dijkstra_Q.isEmpty()){
+			int u = getMinDistVertex(dijkstra_Q, dist);
+			if (u == target) {break;}
+			Q.remove(u);
+
+			for (int v : adj.get(u)) {
+				Edge e = new Edge(u,v);
+				int alt = dist.get(u) + phie.get(e);
+
+				if (alt < dist.get(v)){
+					dist.put(v,alt);
+					prev.put(v,u);
+				}
+			}
+		}
+
+		// ArrayList<Integer> S = new ArrayList<Integer>();
+		Stack<Integer> S = new Stack<>();
+		int u = target;
+
+		while (prev.get(u) != -1){
+			S.push(u);
+			u = prev.get(u);
+		}
+
+		S.push(u);
+
+		ArrayList<Integer> path = new ArrayList<>();
+		for (int i = 0; i<S.size(); i++ ) {
+			path.add(S.pop());
+		}
+
+		return path;
+	}
+
+
 }
 
