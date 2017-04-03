@@ -3,12 +3,16 @@ import java.util.HashSet;
 
 public class Edge {
 
-	private Integer u;
-	private Integer v;
+	private int u;
+	private int v;
+	private int cost;
+	private int benefit;
 
-	public Edge(int u,int v){
+	public Edge(int u, int v, int cost, int benefit){
 		this.u = u;
 		this.v = v;
+		this.cost = cost;
+		this.benefit = benefit;
 	}
 
 	public Edge(){
@@ -16,8 +20,10 @@ public class Edge {
 		this.v = -1;
 	}
 
-	public Integer u() {return u;}
-	public Integer v() {return v;}
+	public int u() {return u;}
+	public int v() {return v;}
+	public int cost() {return cost;}
+	public int benefit() {return benefit;}
 
 	public String toString() {
 		StringBuilder s = new StringBuilder();

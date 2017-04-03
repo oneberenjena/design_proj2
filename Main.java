@@ -42,7 +42,7 @@ public class Main {
 
 	        // G.print_graph();
 	        List<Edge> solucionFactible = G.heuristic(deposit);
-	        System.out.println(solucionFactible);
+	        // System.out.println(solucionFactible);
 	        return G;
 
 		}catch (FileNotFoundException e) {

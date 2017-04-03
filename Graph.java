@@ -15,6 +15,11 @@ public class Graph {
 	private Set<Edge> P;
 	private Set<Edge> Q;
 	private List<Edge> factibleCicle;
+	private List<Edge> sol_parcial;
+	private List<Edge> mejor_sol;
+	private int beneficio_disponible;
+	private Map<Edge, Integer> suc_cost;
+	private Map<Edge, Integer> suc_benefit;
 
 	public Graph(){
 		this.V = new HashSet<Integer>();
@@ -28,6 +33,11 @@ public class Graph {
 		this.P = new HashSet<Edge>();
 		this.Q = new HashSet<Edge>();
 		this.factibleCicle = new ArrayList<Edge>();
+		this.sol_parcial = new ArrayList<Edge>();
+		this.mejor_sol = new ArrayList<Edge>();
+		this.beneficio_disponible = 0;
+		this.suc_cost = new HashMap<Edge, Integer>();
+		this.suc_benefit = new HashMap<Edge, Integer>();
 	}
 
 	public void addEdge(int u, int v, int c, int b){
@@ -36,8 +46,8 @@ public class Graph {
 		if(!V.contains(u)) {V.add(u);}
 		if(!V.contains(v)) {V.add(v);}
 		
-		Edge e = new Edge(u,v);
-		Edge ee = new Edge(v,u);
+		Edge e = new Edge(u,v,c,b);
+		// Edge ee = new Edge(v,u,);
 		E.add(e);
 		// E.add(ee);
 
@@ -128,21 +138,6 @@ public class Graph {
 		}
 	}
 
-	public Edge max_phie_neighboor(int d){
-		int maxPhie = -Integer.MAX_VALUE;
-		int psieEd = 0; 
-		Edge maxEdge =  new Edge();
-		for (int v : adj.get(d)) {
-			Edge ed = new Edge(d,v);
-			psieEd = get_psie(ed);
-			if (psieEd > maxPhie) {
-				maxPhie = psieEd;
-				maxEdge = ed;
-			}
-		}
-		return maxEdge;
-	}
-
 	public void print_graph(){
 		for (Edge e : E) {
 			System.out.println(e + " phie: " + phie.get(e) + " psie: " + psie.get(e) + "\n");
@@ -173,6 +168,7 @@ public class Graph {
 					maxedge = e;
 				}
 			}
+			factibleCicle.add(maxedge);
 		}
 
 		int b = d;
@@ -419,6 +415,66 @@ public class Graph {
 		return path;
 	}
 
+	/********************** SEGUNDA PARTE DEL PROYECTO ***********************/
 
+	public List<Edge> branchAndBound(List<Edge> sol_inicial, int d){
+		sol_parcial.add(d);
+		mejor_sol = sol_inicial;
+		beneficio_disponible = getMaxBenefit();
+
+		DFS();
+	}
+
+	public int calcBenefit(Edge e){
+		if (!E.contains(e)) {e = getEdgeFromE(e.v(), e.u());}
+		int benefit_e = benefit.get(e);
+		benefit_e -= cost.get(e);
+		if (benefit_e == psie.get(e)){
+			benefit.put(e, 0);
+			benefit_e = -cost.get(e);
+		} else {
+			benefit.put(e, benefit_e);
+		}
+		return benefit_e;
+	}
+
+	public int getMaxBenefit(){
+		int total_benefit = 0;
+		for (Edge e : factibleCicle) {
+			if (!E.contains(e)) {
+				e = getEdgeFromE(e.v(), e.u()); 
+			}
+			
+			total_benefit += calcBenefit(e); 
+		}
+		return total_benefit;
+	}
+
+	public List<Edge> getListSucessors(int v){
+		List<Edge> L_v = new ArrayList<Edge>();
+
+		for (Edge e : E) {
+			if (e.u() == v || e.v() == v){
+				Edge e1 = new Edge(e.u(), e.v(), e.benefit(), e.cost());
+				Edge e2 = new Edge(e.u(), e.v(), 0, e.cost());
+				L_v.add(e1);
+				L_v.add(e2);
+				for (Edge e_i : L_v) {
+					for (Edge e_j : L_v) {
+						if (e_i == e_j) {continue;}
+						int i = L_v.indexOf(e_i);
+						int j = L_v.indexOf(e_j);
+						if (e_i.benefit() < e_j.benefit()){
+							Edge etmp = e_i;
+							L_v.set(i, e_j);
+							L_v.set(j, etmp);
+						}
+					}
+				}
+			}
+		}
+
+		return L_v;
+	}
 }
 
