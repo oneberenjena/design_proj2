@@ -12,8 +12,8 @@ public class Edge {
 	}
 
 	public Edge(){
-		this.u = 0;
-		this.v = 0;
+		this.u = -1;
+		this.v = -1;
 	}
 
 	public Integer u() {return u;}
@@ -31,5 +31,10 @@ public class Edge {
 		edge.add(v);
 		return edge;
 	}	
+
+	public Edge swap(){
+		Edge e = new Edge(v,u);
+		return e;
+	}
 
 }

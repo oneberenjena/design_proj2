@@ -5,7 +5,7 @@ import java.util.ArrayList;
 
 public class Main {
 	public static void main(String[] args){	
-		Graph G = buildGraph(args[0]);
+		Graph G = buildGraph(args[0], Integer.parseInt(args[1]));
 		// double start = System.currentTimeMillis();
 		// String output_solution = G.runResolvePath(Integer.parseInt(args[1]));
 		// try{
@@ -23,7 +23,7 @@ public class Main {
 	// 	writer.close();
 	// }
 
-	public static Graph buildGraph(String arg){
+	public static Graph buildGraph(String arg, int deposit){
 		File instance = new File(arg);
 		try{
 	        Scanner sc = new Scanner(instance);
@@ -37,11 +37,12 @@ public class Main {
 	        	c = sc.nextInt();
 	        	p = sc.nextInt();
 	        	G.addEdge(v, w, c, p);
-
 	        }  
 	        sc.close();
 
-	        // G.print_adjacencies();
+	        // G.print_graph();
+	        List<Edge> solucionFactible = G.heuristic(deposit);
+	        System.out.println(solucionFactible);
 	        return G;
 
 		}catch (FileNotFoundException e) {

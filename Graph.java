@@ -14,6 +14,7 @@ public class Graph {
 	private Set<Edge> R;
 	private Set<Edge> P;
 	private Set<Edge> Q;
+	private List<Edge> factibleCicle;
 
 	public Graph(){
 		this.V = new HashSet<Integer>();
@@ -26,6 +27,7 @@ public class Graph {
 		this.R = new HashSet<Edge>();
 		this.P = new HashSet<Edge>();
 		this.Q = new HashSet<Edge>();
+		this.factibleCicle = new ArrayList<Edge>();
 	}
 
 	public void addEdge(int u, int v, int c, int b){
@@ -37,7 +39,7 @@ public class Graph {
 		Edge e = new Edge(u,v);
 		Edge ee = new Edge(v,u);
 		E.add(e);
-		E.add(ee);
+		// E.add(ee);
 
 		if (adj.get(u)==null) {
 			List<Integer> adjs1 = new ArrayList<Integer>();
@@ -62,10 +64,14 @@ public class Graph {
 		}
 
 		cost.put(e, c);
+		// cost.put(ee, c); //
 		benefit.put(e, b);
+		// benefit.put(ee, b); //
 
 		calculate_phie(e, c, b);
+		// calculate_phie(ee, c, b); //
 		calculate_psie(e, c, b);
+		// calculate_psie(ee, c, b); //
 	}
 
 	public void addEdge(Edge e){
@@ -113,9 +119,11 @@ public class Graph {
 	}
 
 	public void calculate_Q(){
-		Set<Edge> Ecopy = E;
-		Ecopy.removeAll(R);
-		for (Edge e : Ecopy) {
+		Set<Edge> EnotR = new HashSet<>();
+		for (Edge e : E) {
+			if (!R.contains(e)) {EnotR.add(e);}
+		}
+		for (Edge e : EnotR) {
 			if (get_phie(e) >= 0) {Q.add(e);}
 		}
 	}
@@ -141,19 +149,7 @@ public class Graph {
 		}
 	}
 
-	public void print_adjacencies(){
-		for (int u : V) {
-			System.out.println("Adyacentes del nodo " + u + "\n");
-			for (int v : adj.get(u)) {
-				System.out.println(v);
-			}
-		}
-	}
-
-
-	public void heuristic(int d){
-		List<Integer> factibleCicle = new ArrayList<Integer>();
-
+	public List<Edge> heuristic(int d){
 		calculate_P();
 		calculate_R();
 		calculate_Q();
@@ -189,7 +185,7 @@ public class Graph {
 			// Existe un lado cuya fuente sea b y su destino u? 
 			for (Edge e : T) {
 				for (int u : V) {
-					if (e.u() == b && e.v() == u){
+					if (e.u() == b && e.v() == u || e.u() == u && e.v() == b){
 						ebu_exists = true;
 						enrl = u;
 					}
@@ -198,58 +194,81 @@ public class Graph {
 
 			// Verificacion de la busqueda anterior
 			if (ebu_exists){
+				ebu_exists = false;
 				ebu = obtener_lado(T, b);
-				T.remove(ebu);
-				///////////////////////////
-				System.out.println("Adding edge (" + ebu.u() + "," + ebu.v() + ") to cicle");
-				///////////////////////////
-				factibleCicle.add(ebu.u());
-				factibleCicle.add(ebu.v());
+				if (!T.contains(ebu)) {
+					int u = ebu.v();
+					int v = ebu.u();
+					Edge ebu_right = getEdgeFromE(u,v);
+					T.remove(ebu_right);
+				} else {
+					T.remove(ebu);
+				}
+				factibleCicle.add(ebu);
 				b = enrl;
 			} else {
-				List<ArrayList<Integer>> CCM = new ArrayList<ArrayList<Integer>>();
+				List<ArrayList<Edge>> CCM = new ArrayList<ArrayList<Edge>>();
 				for (Edge e : T) {
+					// System.out.println("Selected edge " + e);
 					for (int i : e.toSet()) {
-						ArrayList<Integer> CMib = minimumCostPath(i,b);  
+						if (i == b) {continue;}
+						// System.out.println("Voy a buscar un camino minimo entre " + i + " y " + b);
+						ArrayList<Edge> CMib = minimumCostPath(i,b);  
 						CCM.add(CMib);
 					}
 				}
 
-				List<Integer> CMib = obtener_camino(CCM);  
-				int i = CMib.get(0); // Esta es la unica parte que no se
+				ArrayList<Edge> CMib = obtener_camino(CCM);  
+				int i = CMib.get(0).u(); 
 				factibleCicle.addAll(CMib);
 				// Borrar lados de CMib en T
 				T = removePathEdgesFrom(T, CMib);
-				b = i; // Entonces no estoy claro de esto
+				b = i; 
 			}
 		}
 
 		// Si el ultimo vertice del ciclo no es el deposito:
-		int last_i = factibleCicle.get(factibleCicle.size()-1);
+		int last_i = getLast_i();
 		if (last_i != d){
-			List<Integer> CMid = minimumCostPath(last_i,d);
+			List<Edge> CMid = minimumCostPath(last_i,d);
 			factibleCicle.addAll(CMid); 
 		}
+
+		return factibleCicle;
 	}
 
-	public Set<Edge> removePathEdgesFrom(Set<Edge> set, List<Integer> CM){
-		for (int i = 0; i<CM.size(); i++) {
-			int u = CM.get(0);
-			if (CM.get(i+1) != null){
-				int v = CM.get(i+1);
-				Edge e = new Edge(u,v);
-				if (set.contains(e)) {set.remove(e);}
-			}
+	public int getLast_i(){
+		Edge last_edge = factibleCicle.get(factibleCicle.size()-1);
+		Edge last_lastEdge = factibleCicle.get(factibleCicle.size()-2);
+
+		int last_u = last_edge.u();
+		int last_v = last_edge.v();
+
+		if (last_lastEdge.u() != last_u && last_lastEdge.v() != last_u){
+			return last_u;
 		}
+
+		if (last_lastEdge.u() != last_v && last_lastEdge.v() != last_v){
+			return last_v;
+		}
+
+		return 0;
+	}
+
+	public Set<Edge> removePathEdgesFrom(Set<Edge> set, List<Edge> CM){
+		for (Edge e : CM) {
+			if (set.contains(e)) {set.remove(e);}
+		}
+
 		return set;
 	}
 
 	public Edge obtener_lado(Set<Edge> T, int b){
 		int maxPhi = -Integer.MAX_VALUE;
-		int prevMax = 0;
+		int prevMax = maxPhi;
 		Edge beneficEdge = new Edge();
 		for (Edge e : T) {
-			if (e.u() == b){
+			if (e.u() == b || e.v() == b){
 				prevMax =  maxPhi;
 				maxPhi = Math.max(maxPhi, phie.get(e));
 				if (maxPhi > prevMax){
@@ -258,19 +277,22 @@ public class Graph {
 			}	
 		}
 
+		if (beneficEdge.v() == b) {beneficEdge = beneficEdge.swap();}
+		// System.out.println("BENEFIC EDGE " + beneficEdge);
+		// System.out.println("enviando lado " + beneficEdge);
 		return beneficEdge;
 	}
 
-	public ArrayList<Integer> obtener_camino(List<ArrayList<Integer>> CCM){
+	public ArrayList<Edge> obtener_camino(List<ArrayList<Edge>> CCM){
 		int maxPhi = -Integer.MAX_VALUE;
 		int prevMax = 0;
 		int phiPathPosition = 0;
 		int maxPhiPathPosition = -1;
 		int actPhi = 0;
 		
-		for (ArrayList<Integer> path : CCM) {
-			for (int v : path) {
-				actPhi += phie.get(v);
+		for (ArrayList<Edge> path : CCM) {
+			for (Edge e : path) {
+				actPhi += phie.get(e);
 			}
 
 			prevMax = maxPhi;
@@ -304,10 +326,28 @@ public class Graph {
 		return tmp_minVertex;
 	}
 
+	public Edge getEdgeFromE(int u, int v){
+		for (Edge e : E) {
+			if (e.u() == u && e.v() == v) {return e;}
+			if (e.u() == v && e.v() == u) {return e;}
+		}
+		return null;
+	}
+
+	public int cost(Edge e){
+		if (factibleCicle.contains(e)){
+			return cost.get(e);
+		} else if (P.contains(e)){
+			return -phie.get(e);
+		} else {
+			return 0;
+		}
+	}
+
 	// Algoritmo de dijkstra extraido del pseudocodigo de wikipedia
 	// https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
 	// Calcula el camino minimo desde el nodo source al target
-	public ArrayList<Integer> minimumCostPath(int source, int target){
+	public ArrayList<Edge> minimumCostPath(int source, int target){
 		Set<Integer> dijkstra_Q = new HashSet<Integer>();
 		Map<Integer, Integer> dist = new HashMap<Integer, Integer>();
 		Map<Integer, Integer> prev = new HashMap<Integer, Integer>();
@@ -323,33 +363,42 @@ public class Graph {
 		while (!dijkstra_Q.isEmpty()){
 			int u = getMinDistVertex(dijkstra_Q, dist);
 			if (u == target) {break;}
-			Q.remove(u);
+			dijkstra_Q.remove(u);
 
 			for (int v : adj.get(u)) {
-				Edge e = new Edge(u,v);
-				int alt = dist.get(u) + phie.get(e);
-
+				if (!dijkstra_Q.contains(v)) {continue;}
+				Edge e = getEdgeFromE(u,v);
+				int alt = dist.get(u) + cost(e);
+					
 				if (alt < dist.get(v)){
 					dist.put(v,alt);
 					prev.put(v,u);
 				}
 			}
 		}
-
-		// ArrayList<Integer> S = new ArrayList<Integer>();
-		Stack<Integer> S = new Stack<>();
+		List<Integer> S = new ArrayList<>();
 		int u = target;
 
 		while (prev.get(u) != -1){
-			S.push(u);
+			S.add(u);
 			u = prev.get(u);
 		}
 
-		S.push(u);
+		S.add(u);
 
-		ArrayList<Integer> path = new ArrayList<>();
-		for (int i = 0; i<S.size(); i++ ) {
-			path.add(S.pop());
+		ArrayList<Edge> path = new ArrayList<>();
+		for (int i = S.size()-1; i >= 0 ; i--) {
+			int v = S.get(i);
+			if (i-1 >= 0){
+				int w = S.get(i-1);
+				Edge e = getEdgeFromE(v,w);
+
+				if (e.u() == w && e.v() == v){
+					path.add(e.swap());
+				} else {
+					path.add(e);
+				}
+			}
 		}
 
 		return path;
