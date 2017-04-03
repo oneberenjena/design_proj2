@@ -209,17 +209,29 @@ public class Graph {
 			} else {
 				List<ArrayList<Edge>> CCM = new ArrayList<ArrayList<Edge>>();
 				for (Edge e : T) {
-					// System.out.println("Selected edge " + e);
 					for (int i : e.toSet()) {
 						if (i == b) {continue;}
-						// System.out.println("Voy a buscar un camino minimo entre " + i + " y " + b);
 						ArrayList<Edge> CMib = minimumCostPath(i,b);  
 						CCM.add(CMib);
 					}
 				}
 
 				ArrayList<Edge> CMib = obtener_camino(CCM);  
-				int i = CMib.get(0).u(); 
+				// Para guardar el i
+				Edge ix = CMib.get(0);
+				Edge xy = CMib.get(1);
+				int first_u = ix.u();
+				int first_v = ix.v();
+				int sec_u = xy.u();
+				int sec_v = xy.v();
+				int i = 0;
+
+				if (first_u != sec_u && first_u != sec_v){
+					i = first_u;
+				} else if (first_v != sec_u && first_v != sec_v){
+					i = first_v;
+				}
+				// Anadir el camino al ciclo
 				factibleCicle.addAll(CMib);
 				// Borrar lados de CMib en T
 				T = removePathEdgesFrom(T, CMib);
@@ -258,6 +270,8 @@ public class Graph {
 	public Set<Edge> removePathEdgesFrom(Set<Edge> set, List<Edge> CM){
 		for (Edge e : CM) {
 			if (set.contains(e)) {set.remove(e);}
+			e = getEdgeFromE(e.v(), e.u());
+			if (set.contains(e)) {set.remove(e);}
 		}
 
 		return set;
@@ -278,8 +292,6 @@ public class Graph {
 		}
 
 		if (beneficEdge.v() == b) {beneficEdge = beneficEdge.swap();}
-		// System.out.println("BENEFIC EDGE " + beneficEdge);
-		// System.out.println("enviando lado " + beneficEdge);
 		return beneficEdge;
 	}
 
@@ -292,6 +304,9 @@ public class Graph {
 		
 		for (ArrayList<Edge> path : CCM) {
 			for (Edge e : path) {
+				if (!E.contains(e)){
+					e = getEdgeFromE(e.v(), e.u());
+				}
 				actPhi += phie.get(e);
 			}
 
